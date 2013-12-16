@@ -838,10 +838,104 @@ function fibonacci(limit) {
     case "end":
       return context.stop();
     }
-  });
+  }, this);
 }
             </code></pre>
           </section>
+        </section>
+
+        <section data-transition="none">
+          Easy enough, you say. But what if an exception is thrown from
+          inside a triply-nested <code>try</code>-<code>finally</code>
+          block?
+          <pre class="javascript small"><code>
+function *crazy(x) {
+  try {
+    try {
+      try {
+        mightThrow(x);
+      } finally {
+        yield "inner";
+      }
+    } catch (x) {
+      throw yield x;
+    } finally {
+      yield "middle";
+    }
+  } finally {
+    yield "outer";
+  }
+}
+          </code></pre>
+        </section>
+
+        <section data-transition="none">
+          <section data-transition="none">
+            <pre class="javascript small"><code>
+function crazy(x) {
+  return wrapGenerator(function crazy$($ctx) {
+    while (1) switch ($ctx.next) {
+    case 0:
+      $ctx.t0 = 31;
+      $ctx.pushTry(null, 26, "t0");
+      $ctx.t1 = 26;
+      $ctx.pushTry(15, 21, "t1");
+      $ctx.t2 = 12;
+      $ctx.pushTry(null, 7, "t2");
+      mightThrow(x);
+    case 7:
+      $ctx.popFinally(7);
+      $ctx.next = 10;
+      return "inner";
+    case 10:
+      $ctx.next = $ctx.t2;
+      break;
+    case 12:
+      $ctx.popCatch(15);
+      $ctx.next = 21;
+      break;
+    case 15:
+      $ctx.popCatch(15);
+      $ctx.t3 = $ctx.thrown;
+      delete $ctx.thrown;
+      $ctx.next = 20;
+      return $ctx.t3;
+      ...
+            </code></pre>
+          </section>
+
+          <section data-transition="none">
+            <pre class="javascript small right"><code data-notrim="true">
+    ...
+    case 20:
+      throw $ctx.sent;
+    case 21:
+      $ctx.popFinally(21);
+      $ctx.next = 24;
+      return "middle";
+    case 24:
+      $ctx.next = $ctx.t1;
+      break;
+    case 26:
+      $ctx.popFinally(26);
+      $ctx.next = 29;
+      return "outer";
+    case 29:
+      $ctx.next = $ctx.t0;
+      break;
+    case 31:
+    case "end":
+      return $ctx.stop();
+    }
+  }, this);
+}</code></pre>
+          </section>
+        </section>
+
+        <section>
+          Check out <a href="http://facebook.github.io/regenerator/">the
+            live sandbox</a> for a convenient way to experiment with
+            insane code and easily report any bugs that you find.
         </section>
 
         <section>

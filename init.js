@@ -37,7 +37,9 @@ Reveal.initialize({
                 document.querySelectorAll("pre code"),
                 function(code) {
                     console.log(code);
-                    code.textContent = code.textContent.replace(/^\s+|\s+$/g, "");
+                    if (code.getAttribute("data-notrim") !== "true") {
+                        code.textContent = code.textContent.replace(/^\s+|\s+$/g, "");
+                    }
                     hljs.highlightBlock(code.parentNode);
                 }
             );
