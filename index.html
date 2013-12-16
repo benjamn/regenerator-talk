@@ -1,0 +1,996 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+	<meta charset="utf-8">
+
+	<title>Brooklyn JS: Regenerator</title>
+
+	<meta name="description" content="How I brought one of the most exciting features of ECMAScript 6 to current-day JavaScript" />
+	<meta name="author" content="Ben Newman <bn@cs.stanford.edu>" />
+
+	<meta name="apple-mobile-web-app-capable" content="yes" />
+	<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+	<link rel="stylesheet" href="css/reveal.min.css">
+	<link rel="stylesheet" href="css/theme/default.css" id="theme">
+
+	<!-- For syntax highlighting -->
+	<link rel="stylesheet" href="lib/css/xcode.css">
+
+    <style type="text/css">
+      .reveal pre {
+        box-shadow: none;
+      }
+
+      .reveal pre.big,
+      .reveal pre.contact {
+        font-size: 36px;
+      }
+
+      .reveal pre.center {
+        text-align: center;
+      }
+
+      .reveal pre code {
+        max-height: none;
+      }
+    </style>
+  </head>
+
+  <body>
+	<div class="reveal">
+	  <div class="slides">
+		<section>
+		  <h1>regenerator</h1>
+		  <p>
+            <small>
+              Ben Newman<br>
+              @brooklyn_js
+            </small>
+          </p>
+		</section>
+
+        <section>
+          <dl>
+            <dt><b>BENTLEY</b></dt>
+            <dd>
+              Oh. Well, I was going to ask… eh; what is it, Major
+              Lawrence,<br>
+              that attracts you personally to the desert?
+            </dd>
+            <br>
+            <dt class="fragment"><b>LAWRENCE</b></dt>
+            <dd class="fragment">It's clean.</dd>
+          </dl>
+        </section>
+
+        <section>
+          Sometimes software development is like a desert.
+        </section>
+
+        <section>
+          Pure possibility spreads out as far as the eye can see.
+        </section>
+
+        <section>
+          The only obstacles are in your mind.
+        </section>
+
+        <section>
+          If you build something there and it falls apart,
+          <div class="fragment">
+            it was your own fault,
+            <span class="fragment">your own poor planning.</span>
+          </div>
+        </section>
+
+        <section data-transition="zoom">
+          If you feel that way about <b>JavaScript</b>,<br>
+          then you must know something I don't.
+        </section>
+
+        <section>
+          Because there's nothing <em>pristine</em> about <b>web
+          browsers</b>, with their ever-evolving APIs and long histories
+          of inconsistency.
+        </section>
+
+        <section>
+          <p class="fragment">
+            And I honestly can't say it's your fault if you expected
+            <pre class="javascript big center"><code>
+[3, 1, 10, 28].sort()
+            </code></pre>
+          </p>
+          <p class="fragment">
+            to evaluate to
+            <pre class="javascript big center"><code>
+[1, 3, 10, 28]
+            </code></pre>
+          </p>
+          <p class="fragment">
+            instead of
+            <pre class="javascript big center"><code>
+[1, 10, 28, 3]
+            </code></pre>
+          </p>
+          <p class="fragment">
+            (because the default sort function compares the dictionary
+            order of the elements after turning them into strings).
+          </p>
+        </section>
+
+        <section>
+          <p>
+            JavaScript is more of a deep, dark forest than a desert.
+          </p>
+          <br>
+          <p class="fragment">
+            There's always something to be grappled with, even if the
+            lessons aren't exactly timeless.
+          </p>
+          <br>
+          <p class="fragment">
+            And that impurity is part of what attracts me,<br>
+            personally, to the forest.
+          </p>
+        </section>
+
+        <section data-transition="zoom">
+          Tonight I want to talk about the future of JavaScript,<br>
+          and how we can get there more quickly.
+        </section>
+
+        <section>
+          <h2>Background</h2>
+          <br>
+          <p class="fragment">
+            Before coming to Facebook I worked at Quora.
+          </p>
+          <br>
+          <p class="fragment">
+            Near the end of my time at Quora, I began building a tool for
+            rewriting JavaScript source code that Quora graciously let me
+            release as open source before I left.
+          </p>
+        </section>
+
+        <section>
+          <h2><a href="https://github.com/benjamn/recast">recast</a>, <em>v</em>.</h2>
+          <br>
+          <ol>
+            <li class="fragment">
+              to give (a metal object) a different form by melting it down
+              and reshaping it.
+            </li>
+            <li class="fragment">
+              to form, fashion, or arrange again.
+            </li>
+            <li class="fragment">
+              to remodel or reconstruct (a literary work, document,
+              sentence, etc.).
+            </li>
+            <li class="fragment">
+              to supply (a theater or opera work) with a new cast.
+            </li>
+          </ol>
+        </section>
+
+        <section>
+          <h2>How it works:</h2>
+          <br>
+          <pre class="fragment javascript big"><code>
+var recast = require("recast");
+var ast = recast.parse(source);
+transform(ast); // Anything goes.
+console.log(recast.print(ast).code);
+          </code></pre>
+        </section>
+
+        <section>
+          <p>
+            Instead of simply pretty-printing the whole
+            tree, <code>recast.print</code> tries to recyle the original
+            source code wherever possible.
+          </p>
+          <br>
+          <br>
+          <p class="fragment">
+            "Non-destructive partial source transformation"<br>
+            &ndash; Ariya Hidayat
+          </p>
+        </section>
+
+        <section>
+          <p>
+            You get to think about Syntax in the abstract,<br>
+            pristine desert of your imagination.
+          </p>
+          <br>
+          <br>
+          <p class="fragment">
+            And what you get in return are diffs that<br>
+            <em>humans</em> can read and review.
+          </p>
+        </section>
+
+        <section>
+          <h2>So far this year:</h2>
+          <br>
+          <div class="fragment">1647 files changed</div>
+          <div class="fragment">76555 insertions(+)</div>
+          <div class="fragment">78260 deletions(-)</div>
+        </section>
+
+        <section>
+          <h2>What next?</h2>
+          <br>
+          <p class="fragment">
+            Take features from the next version of JavaScript.
+          </p>
+          <br>
+          <p class="fragment">
+            Rewrite them in syntax supported by all current
+            implementations of the language.
+          </p>
+          <br>
+          <p class="fragment">
+            Pretend the future is here.
+          </p>
+        </section>
+
+        <section>
+          <h2>Which features first?</h2>
+        </section>
+
+        <section>
+          <h2>Arrow function syntax:</h2>
+          <br>
+          <pre class="javascript big center"><code>
+[3, 1, 10, 28].sort((a, b) => a - b)
+          </code></pre>
+        </section>
+
+        <section>
+          First, import some utilities and parse the code:
+          <br>
+          <br>
+          <pre class="javascript big"><code>
+var recast = require("recast");
+var types = recast.types;
+var n = types.namedTypes;
+var b = types.builders;
+
+var ast = recast.parse(
+  "[3, 1, 10, 28].sort((a, b) => a - b)"
+);
+          </code></pre>
+        </section>
+
+        <section>
+          <section data-transition="none">
+            Next, traverse and modify the syntax tree:
+            <pre class="javascript small"><code>
+types.traverse(ast, function(node) {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+});
+            </code></pre>
+          </section>
+
+          <section data-transition="none">
+            Next, traverse and modify the syntax tree:
+            <pre class="javascript small"><code>
+types.traverse(ast, function(node) {
+  if (n.ArrowFunctionExpression.check(node)) {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  }
+});
+            </code></pre>
+          </section>
+          <section data-transition="none">
+            Next, traverse and modify the syntax tree:
+            <pre class="javascript small"><code>
+types.traverse(ast, function(node) {
+  if (n.ArrowFunctionExpression.check(node)) {
+    var body = node.body;
+
+    if (node.expression) {
+      node.expression = false;
+      body = b.blockStatement([b.returnStatement(body)]);
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+  }
+});
+            </code></pre>
+          </section>
+
+          <section data-transition="none">
+            Next, traverse and modify the syntax tree:
+            <pre class="javascript small"><code>
+types.traverse(ast, function(node) {
+  if (n.ArrowFunctionExpression.check(node)) {
+    var body = node.body;
+
+    if (node.expression) {
+      node.expression = false;
+      body = b.blockStatement([b.returnStatement(body)]);
+    }
+
+    var funExp = b.functionExpression(
+      node.id, node.params, body,
+      node.generator, node.expression
+    );
+
+
+
+
+
+
+
+  }
+});
+            </code></pre>
+          </section>
+
+          <section data-transition="none">
+            Next, traverse and modify the syntax tree:
+            <pre class="javascript small"><code>
+types.traverse(ast, function(node) {
+  if (n.ArrowFunctionExpression.check(node)) {
+    var body = node.body;
+
+    if (node.expression) {
+      node.expression = false;
+      body = b.blockStatement([b.returnStatement(body)]);
+    }
+
+    var funExp = b.functionExpression(
+      node.id, node.params, body,
+      node.generator, node.expression
+    );
+
+    var bindExp = b.callExpression(
+      b.memberExpression(funExp, b.identifier("bind"), false),
+      [b.thisExpression()]
+    );
+
+
+  }
+});
+            </code></pre>
+          </section>
+
+          <section data-transition="none">
+            Next, traverse and modify the syntax tree:
+            <pre class="javascript small"><code>
+types.traverse(ast, function(node) {
+  if (n.ArrowFunctionExpression.check(node)) {
+    var body = node.body;
+
+    if (node.expression) {
+      node.expression = false;
+      body = b.blockStatement([b.returnStatement(body)]);
+    }
+
+    var funExp = b.functionExpression(
+      node.id, node.params, body,
+      node.generator, node.expression
+    );
+
+    var bindExp = b.callExpression(
+      b.memberExpression(funExp, b.identifier("bind"), false),
+      [b.thisExpression()]
+    );
+
+    this.replace(bindExp);
+  }
+});
+            </code></pre>
+          </section>
+        </section>
+
+        <section>
+          Finally, reprint the code:
+          <br>
+          <br>
+          <pre class="javascript big fragment"><code>
+console.log(recast.print(ast).code);
+
+// Which prints:
+[3, 1, 10, 28].sort(function(a, b) {
+  return a - b;
+}.bind(this))
+          </code></pre>
+          <br>
+          <p class="fragment">
+            If you already have a build step for static resources, you can
+            be cooking with arrow functions in a matter of minutes!
+          </p>
+        </section>
+
+        <section>
+          What about something a little trickier?
+          <pre class="javascript small"><code>
+function *fibonacci(limit) {
+  var a = 0;
+  var b = 1;
+
+  limit = limit || Infinity;
+
+  while (a <= limit) {
+    yield a;
+
+    var next = a + b;
+    a = b;
+    b = next;
+  }
+}
+
+var g = fibonacci(10);
+
+console.log(g.next().value); // 0
+console.log(g.next().value); // 1
+console.log(g.next().value); // 1
+console.log(g.next().value); // 2
+console.log(g.next().value); // 3
+console.log(g.next().value); // 5
+console.log(g.next().value); // 8
+console.log(g.next().done); // true
+          </code></pre>
+        </section>
+
+        <section>
+          How hard could it be to translate this function into one that no
+          longer contains <code>function*</code> or <code>yield</code>?
+        </section>
+
+        <section>
+          <blockquote class="twitter-tweet" lang="en">
+            <p>
+              I&#39;ve been jokingly referring to this side project as &quot;my life&#39;s
+              work&quot; for so long that I&#39;m terrified it might
+              actually be finished soon.
+            </p>&mdash; Ben Newman (@benjamn)
+            <a href="https://twitter.com/benjamn/statuses/331923303767867392">
+              May 8, 2013</a>
+          </blockquote>
+        </section>
+
+        <section>
+          It's the trickiest code I've ever written.
+        </section>
+
+        <section>
+          <section data-transition="none">
+            <pre class="javascript small"><code>
+function *fibonacci(limit) {
+  var a = 0;
+  var b = 1;
+
+  limit = limit || Infinity;
+
+  while (a <= limit) {
+    yield a;
+
+    var next = a + b;
+    a = b;
+    b = next;
+  }
+
+
+
+
+
+
+
+
+
+
+
+
+
+}
+            </code></pre>
+          </section>
+
+          <section data-transition="none">
+            <pre class="javascript small"><code>
+function *fibonacci(limit) {
+  var a, b, next;
+
+  a = 0;
+  b = 1;
+
+  limit = limit || Infinity;
+
+  while (a <= limit) {
+    yield a;
+
+    next = a + b;
+    a = b;
+    b = next;
+  }
+
+
+
+
+
+
+
+
+
+
+
+}
+            </code></pre>
+          </section>
+
+          <section data-transition="none">
+            <pre class="javascript small"><code>
+function fibonacci(limit) {
+  var a, b, next;
+
+  return function*() {
+    a = 0;
+    b = 1;
+
+    limit = limit || Infinity;
+
+    while (a <= limit) {
+      yield a;
+
+      next = a + b;
+      a = b;
+      b = next;
+    }
+  };
+
+
+
+
+
+
+
+
+
+}
+            </code></pre>
+          </section>
+
+          <section data-transition="none">
+            <pre class="javascript small"><code>
+function fibonacci(limit) {
+  var a, b, next;
+
+  return function(context) {
+    while (true) switch (context.next) {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    }
+  };
+}
+            </code></pre>
+          </section>
+
+          <section data-transition="none">
+            <pre class="javascript small"><code>
+function fibonacci(limit) {
+  var a, b, next;
+
+  return function(context) {
+    while (true) switch (context.next) {
+    case 0:
+      a = 0;
+      b = 1;
+      limit = limit || Infinity;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    }
+  };
+}
+            </code></pre>
+          </section>
+
+          <section data-transition="none">
+            <pre class="javascript small"><code>
+function fibonacci(limit) {
+  var a, b, next;
+
+  return function(context) {
+    while (true) switch (context.next) {
+    case 0:
+      a = 0;
+      b = 1;
+      limit = limit || Infinity;
+    case 2:
+      if (!(a <= limit)) {
+        context.next = "end";
+        break;
+      }
+
+
+
+
+
+
+
+
+
+
+    }
+  };
+}
+            </code></pre>
+          </section>
+
+          <section data-transition="none">
+            <pre class="javascript small"><code>
+function fibonacci(limit) {
+  var a, b, next;
+
+  return function(context) {
+    while (true) switch (context.next) {
+    case 0:
+      a = 0;
+      b = 1;
+      limit = limit || Infinity;
+    case 2:
+      if (!(a <= limit)) {
+        context.next = "end";
+        break;
+      }
+
+
+
+
+
+
+
+
+    case "end":
+      return context.stop();
+    }
+  };
+}
+            </code></pre>
+          </section>
+
+          <section data-transition="none">
+            <pre class="javascript small"><code>
+function fibonacci(limit) {
+  var a, b, next;
+
+  return function(context) {
+    while (true) switch (context.next) {
+    case 0:
+      a = 0;
+      b = 1;
+      limit = limit || Infinity;
+    case 2:
+      if (!(a <= limit)) {
+        context.next = "end";
+        break;
+      }
+      context.next = 5;
+      return a;
+
+
+
+
+
+
+    case "end":
+      return context.stop();
+    }
+  };
+}
+            </code></pre>
+          </section>
+
+          <section data-transition="none">
+            <pre class="javascript small"><code>
+function fibonacci(limit) {
+  var a, b, next;
+
+  return function(context) {
+    while (true) switch (context.next) {
+    case 0:
+      a = 0;
+      b = 1;
+      limit = limit || Infinity;
+    case 2:
+      if (!(a <= limit)) {
+        context.next = "end";
+        break;
+      }
+      context.next = 5;
+      return a;
+    case 5:
+      next = a + b;
+      a = b;
+      b = next;
+      context.next = 2;
+      break;
+    case "end":
+      return context.stop();
+    }
+  };
+}
+            </code></pre>
+          </section>
+
+          <section data-transition="none">
+            <pre class="javascript small"><code>
+function fibonacci(limit) {
+  var a, b, next;
+
+  return wrapGenerator(function(context) {
+    while (true) switch (context.next) {
+    case 0:
+      a = 0;
+      b = 1;
+      limit = limit || Infinity;
+    case 2:
+      if (!(a <= limit)) {
+        context.next = "end";
+        break;
+      }
+      context.next = 5;
+      return a;
+    case 5:
+      next = a + b;
+      a = b;
+      b = next;
+      context.next = 2;
+      break;
+    case "end":
+      return context.stop();
+    }
+  });
+}
+            </code></pre>
+          </section>
+        </section>
+
+        <section>
+          <p>
+            I can go into a lot more detail if there are questions, and of
+            course <a href="https://github.com/benjamn/recast">https://github.com/facebook/regenerator</a>
+            is the final authority on how the transformation currently works.
+          </p>
+          <br>
+          <br>
+          <p class="fragment">
+            Right now, though, I want to talk about something<br>
+            much less technical.
+          </p>
+        </section>
+
+        <section>
+          <h1>Motivation</h1>
+          <br>
+          <p class="fragment">
+            How can you stay motivated to finish a difficult side project
+            that isn't directly related to your day job?
+          </p>
+          <br>
+          <p class="fragment">
+            Unless you're some kind of superhero, you can't just rely on
+            having boundless enthusiasm for programming. It runs out.
+          </p>
+          <br>
+          <p class="fragment">
+            Telling yourself, "The trick&hellip; is not minding that it hurts"<br>
+            is not a sustainable strategy.
+          </p>
+        </section>
+
+        <section>
+          <h2>Keep it fun.</h2>
+          <br>
+          <p class="fragment">
+            Writing tests is even more important for side projects than it
+            is for day-to-day coding.
+          </p>
+          <br>
+          <p class="fragment">
+            Time your breaks for when you're pretty sure you know what
+            you need to do next.
+          </p>
+          <br>
+          <p class="fragment">
+            Guard your secrets, and don't oversell an unfinished project,
+            but let other people in when you have something to share.
+          </p>
+        </section>
+
+        <section>
+          <h2>Don't be discouraged by similar projects.</h2>
+          <br>
+          <p class="fragment">
+            Even when they seem to have a head start.
+          </p>
+          <br>
+          <p class="fragment">
+            You have a distinct advantage as the underdog, because you
+            know exactly what success would look like.
+          </p>
+          <br>
+          <p class="fragment">
+            Whenever you feel discouraged, realize that other people will
+            probably be discouraged for the same reason.
+          </p>
+        </section>
+
+        <section>
+          <h2>When should you ship?</h2>
+          <br>
+          <p class="fragment">
+            Day job projects have to be mostly correct when you ship, but
+            that's fortunately not the case for side projects.
+          </p>
+          <br>
+          <p class="fragment">
+            Rule of thumb: ship as soon as you're confident you can fix
+            new problems quickly.
+          </p>
+          <br>
+          <p class="fragment">
+            It makes people feel great to report real problems, especially
+            if they're straightforward to fix.
+          </p>
+          <br>
+          <p class="fragment">
+            Preemptively file known bugs and don't worry about fixing all
+            of them before you ship.
+          </p>
+        </section>
+
+        <section>
+          <h2>Make it easy for people to contribute, even in small ways.</h2>
+          <br>
+          <p class="fragment">
+            "Report a bug" link next
+            to <a href="http://facebook.github.io/regenerator">the live
+              editor</a>.
+          </p>
+          <br>
+          <p class="fragment">
+            Restrict the scope of your project to encourage
+            interoperability.
+          </p>
+          <br>
+          <p class="fragment">
+            As long as tests are passing, merge first and tweak later.
+          </p>
+        </section>
+
+        <section>
+          <h2>Get non-technical friends excited about what you're working on.</h2>
+          <br>
+          <p class="fragment">
+            It might just be that your enthusiasm is infectious,<br>
+            but that counts for a lot.
+          </p>
+          <br>
+          <p class="fragment">
+            Even technical friends have an emotional side that you will
+            need to appeal to.
+          </p>
+          <br>
+          <p class="fragment">
+            And let's be honest: you have the same emotional needs, and you
+            are the primary audience for the story you're telling.
+          </p>
+        </section>
+
+	    <section>
+          <h2>Thanks!</h2>
+          <br>
+          <a href="https://github.com/benjamn/recast">
+            https://github.com/benjamn/recast
+          </a>
+          <br>
+          <br>
+          <a href="https://github.com/facebook/regenerator">
+            https://github.com/facebook/regenerator
+          </a>
+          <br>
+          <br>
+          <pre class="contact">
+{ github,
+  twitter,
+  instagram,
+  facebook
+}.com/benjamn
+          </pre>
+	    </section>
+
+	  </div>
+
+	  <script src="lib/js/head.min.js"></script>
+	  <script src="js/reveal.min.js"></script>
+	  <script src="init.js"></script>
+      <script src="//platform.twitter.com/widgets.js"
+              async charset="utf-8"></script>
+  </body>
+</html>
