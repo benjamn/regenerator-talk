@@ -36,7 +36,6 @@ Reveal.initialize({
             Array.prototype.map.call(
                 document.querySelectorAll("pre code"),
                 function(code) {
-                    console.log(code);
                     if (code.getAttribute("data-notrim") !== "true") {
                         code.textContent = code.textContent.replace(/^\s+|\s+$/g, "");
                     }
